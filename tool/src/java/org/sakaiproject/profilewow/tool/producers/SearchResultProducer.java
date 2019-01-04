@@ -17,6 +17,7 @@ import org.sakaiproject.search.api.InvalidSearchQueryException;
 import org.sakaiproject.search.api.SearchList;
 import org.sakaiproject.search.api.SearchResult;
 import org.sakaiproject.search.api.SearchService;
+import org.sakaiproject.user.api.User;
 import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.user.api.UserNotDefinedException;
 
@@ -272,10 +273,11 @@ public class SearchResultProducer implements ViewComponentProducer,ViewParamsRep
 			while (profileIterator.hasNext())
 			{
 				profile = (SakaiPerson) profileIterator.next();
-
+				
 				// Select the user mutable profile for display on if the public information is viewable.
 				if ((profile != null)
-						&& profile.getTypeUuid().equals(sakaiPersonManager.getUserMutableType().getUuid()))
+						&& profile.getTypeUuid().equals(sakaiPersonManager.getUserMutableType().getUuid())
+						&& getSakai(profile))
 				{
 					if ((getCurrentUserId().equals(profile.getAgentUuid()) || securityService.isSuperUser()))
 					{
@@ -292,7 +294,6 @@ public class SearchResultProducer implements ViewComponentProducer,ViewParamsRep
 						{
 							searchResults.add(getOnlyPublicProfile(profile));
 						}
-
 					}
 				}
 				
@@ -305,6 +306,34 @@ public class SearchResultProducer implements ViewComponentProducer,ViewParamsRep
 		return searchResults;
 	}
 
+	private boolean getSakai(SakaiPerson profile) {
+		  // User account types
+		  String TYPE_STUDENT = "student";
+		  String TYPE_STAFF = "staff";
+		  String TYPE_THIRDPARTY = "thirdparty";
+		  //String TYPE_OFFER = "offer";
+		  
+		log.info("User: " + profile + "Type: " + profile.getTypeUuid());
+		User user = null;
+		try {
+			user = userDirectoryService.getUser(profile.getAgentUuid());
+			String type = user.getType();
+			log.info("User: " + user.getType());
+			if ("guest".equals(type)) {
+				return true;
+			} else if (TYPE_STUDENT.equals(type)) {
+				return true;
+			} else if (TYPE_STAFF.equals(type)) {
+				return true;
+			} else if (TYPE_THIRDPARTY.equals(type)) {
+				return true;
+			}
+		} catch (UserNotDefinedException e) {
+			log.info(e.getLocalizedMessage(), e);
+		}
+		
+		return false;
+	}
 	private SakaiPerson getOnlyPublicProfile(SakaiPerson profile)
 	{
 		if (log.isDebugEnabled())
@@ -323,12 +352,6 @@ public class SearchResultProducer implements ViewComponentProducer,ViewParamsRep
 	private String getCurrentUserId() {
 		return userDirectoryService.getCurrentUser().getId();
 	}
-	
-	
-	
-	
-	
-	
 	
 	
 }
